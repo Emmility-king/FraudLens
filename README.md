@@ -7,6 +7,7 @@ This README contains quickstart steps, project structure, API documentation, dat
 **Status:** Prototype / school project — includes working CSV/XLSX ingestion, dataset persistence to SQLite, a frontend UI shell, and CI + basic tests. Model training and production-grade scoring are planned next steps.
 
 **Table of contents**
+
 - Project overview
 - Quickstart (backend + frontend)
 - API reference (important endpoints)
@@ -22,6 +23,7 @@ This README contains quickstart steps, project structure, API documentation, dat
 FraudLens (Fine-Guard AI) is a small end-to-end prototype that demonstrates how to ingest transactional datasets (CSV/XLSX), persist them to a local SQLite store, run background scoring jobs (currently stubbed), and visualize flagged transactions on a React dashboard. The repository is intended as a student project scaffold for iterating into a full deep-learning based fraud detection pipeline.
 
 Key goals:
+
 - Support batch CSV/XLSX ingestion with automatic column normalization
 - Persist datasets and transactions into SQLite for downstream processing
 - Provide a clean, professional UI for analysts to inspect flagged transactions
@@ -40,6 +42,7 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
 # Run the FastAPI app (reload helpful during development)
+cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -99,6 +102,7 @@ Note: Use the OpenAPI docs at `/docs` to explore schemas and additional endpoint
 **Next steps / roadmap**
 
 Short-term (student project scope):
+
 - Implement a training pipeline using PyTorch (data loaders, model, training script). Track experiments and save model artifacts to `models/`.
 - Replace the stub scoring job with a lightweight model server that loads the trained model for scoring.
 - Add Alembic migrations or a simple DB migration/seed step for production-like workflows.
@@ -106,6 +110,7 @@ Short-term (student project scope):
 - Improve UI polish and add upload progress indicators, toasts, and better mobile handling.
 
 Longer-term:
+
 - Integrate a real large-scale dataset and add sampling/streaming ingestion to handle very large files.
 - Add role-based access control and audit logging for analyst actions.
 - Harden the pipeline for production (containerization, CI/CD, monitoring).
@@ -121,6 +126,7 @@ This repository keeps the existing license file. See `LICENSE.md` for details.
 ---
 
 If you want, I can also:
+
 - Add a README for the frontend (or replace the existing one in `frontend/`) to match this top-level README
 - Add example synthetic data generation and a one-step training script
 - Create PR templates or contributor docs

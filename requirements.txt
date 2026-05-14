@@ -1,0 +1,20 @@
+# Fine-Guard AI — Python backend & ML (Python 3.12+)
+# Install after activating .venv: pip install -r requirements.txt
+
+fastapi>=0.115.0,<1
+python-multipart>=0.0.9,<1
+uvicorn[standard]>=0.32.0,<1
+pydantic>=2.9.0,<3
+pydantic-settings>=2.6.0,<3
+
+# Data & DB
+pandas>=2.2.0,<3
+numpy>=2.0.0,<3
+sqlalchemy[asyncio]>=2.0.36,<3
+aiosqlite>=0.20.0,<1
+openpyxl>=3.1.0,<4
+
+# ML / DL (PyTorch: install CPU/GPU wheel from https://pytorch.org if needed)
+torch>=2.5.0,<3
+scikit-learn>=1.5.0,<2
+imbalanced-learn>=0.12.0,<1
