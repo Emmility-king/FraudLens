@@ -30,6 +30,9 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<any | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [predicting, setPredicting] = useState(false)
+  const [predictResult, setPredictResult] = useState<any | null>(null)
+  const [predictError, setPredictError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const API_BASE = (import.meta.env.VITE_API_BASE as string) ?? 'http://localhost:8000'
@@ -71,6 +74,25 @@ export default function App() {
       setUploadError(err?.message ?? String(err))
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function runPredict(datasetId: string) {
+    setPredictResult(null)
+    setPredictError(null)
+    setPredicting(true)
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/predict/${datasetId}`, { method: 'POST' })
+      if (!r.ok) {
+        const t = await r.text()
+        throw new Error(t || r.statusText)
+      }
+      const body = await r.json()
+      setPredictResult(body)
+    } catch (err: any) {
+      setPredictError(err?.message ?? String(err))
+    } finally {
+      setPredicting(false)
     }
   }
 
@@ -217,11 +239,40 @@ export default function App() {
             {uploading && <p className="text-xs text-slate-400">Uploading…</p>}
             {uploadResult && (
               <div className="mx-auto mt-2 max-w-md rounded border border-slate-800 bg-slate-950/60 p-3 text-left text-sm">
-                <div><strong className="text-slate-200">Uploaded:</strong> <span className="text-slate-400">{uploadResult.filename}</span></div>
-                <div><strong className="text-slate-200">Rows:</strong> <span className="text-slate-400">{uploadResult.row_count}</span></div>
-                <div><strong className="text-slate-200">ID:</strong> <span className="font-mono text-xs text-sky-300">{uploadResult.dataset_id}</span></div>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div><strong className="text-slate-200">Uploaded:</strong> <span className="text-slate-400">{uploadResult.filename}</span></div>
+                    <div><strong className="text-slate-200">Rows:</strong> <span className="text-slate-400">{uploadResult.row_count}</span></div>
+                    <div><strong className="text-slate-200">ID:</strong> <span className="font-mono text-xs text-sky-300">{uploadResult.dataset_id}</span></div>
+                  </div>
+                  <div>
+                    <button
+                      className="rounded bg-emerald-600 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-500"
+                      onClick={() => void runPredict(uploadResult.dataset_id)}
+                      disabled={predicting}
+                    >
+                      {predicting ? 'Predicting…' : 'Run prediction'}
+                    </button>
+                  </div>
+                </div>
                 {uploadResult.warnings?.length > 0 && (
                   <div className="mt-2 text-xs text-amber-300">Warnings: {uploadResult.warnings.join('; ')}</div>
+                )}
+
+                {predictError && <div className="mt-2 text-xs text-red-400">Predict error: {predictError}</div>}
+
+                {predictResult && (
+                  <div className="mt-3 text-sm">
+                    <div className="text-xs text-slate-400">Preview scores (first {predictResult.preview?.length ?? 0} rows)</div>
+                    <ul className="mt-2 max-h-40 overflow-y-auto text-xs">
+                      {predictResult.preview?.map((p: any) => (
+                        <li key={p.transaction_id} className="flex justify-between border-b border-slate-800 py-1">
+                          <span className="font-mono text-sky-300 truncate max-w-[200px]">{p.transaction_id}</span>
+                          <span className="ml-2 tabular-nums text-slate-200">{p.score.toFixed(4)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}
