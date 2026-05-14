@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Line, LineChart, Legend } from 'recharts'
 import { RiskGauge } from './components/RiskGauge'
 import { mockFlags, riskHistogram, type FlaggedRow } from './data/mockFlags'
 
@@ -35,6 +36,24 @@ export default function App() {
   const [predictResult, setPredictResult] = useState<any | null>(null)
   const [predictError, setPredictError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [scoring, setScoring] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [jobProgress, setJobProgress] = useState<number | null>(null)
+  const [jobStatus, setJobStatus] = useState<string | null>(null)
+  const [trainingLog, setTrainingLog] = useState<any[] | null>(null)
+
+  // fetch demo model logs on load
+  void (async function loadLogs() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/models/logs/demo.pt`)
+      if (res.ok) {
+        const j = await res.json()
+        setTrainingLog(j.rows ?? null)
+      }
+    } catch (e) {
+      // ignore
+    }
+  })()
 
   const API_BASE = (import.meta.env.VITE_API_BASE as string) ?? 'http://localhost:8000'
 
@@ -116,6 +135,45 @@ export default function App() {
     }
   }
 
+  async function runScoring(datasetId: string) {
+    setJobId(null)
+    setJobProgress(null)
+    setJobStatus(null)
+    setScoring(true)
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/datasets/${datasetId}/score`, { method: 'POST' })
+      if (!r.ok) {
+        const t = await r.text()
+        throw new Error(t || r.statusText)
+      }
+      const body = await r.json()
+      const jid = body.job_id
+      setJobId(jid)
+      setJobStatus(body.status)
+
+      // poll job status
+      const interval = setInterval(async () => {
+        try {
+          const sres = await fetch(`${API_BASE}/api/v1/jobs/${jid}`)
+          if (!sres.ok) throw new Error('Could not fetch job status')
+          const sb = await sres.json()
+          setJobStatus(sb.status)
+          setJobProgress(sb.progress ?? null)
+          if (sb.status === 'succeeded' || sb.status === 'failed') {
+            clearInterval(interval)
+            setScoring(false)
+          }
+        } catch (e) {
+          clearInterval(interval)
+          setScoring(false)
+        }
+      }, 1500)
+    } catch (err: any) {
+      setScoring(false)
+      setJobStatus('error')
+    }
+  }
+
   const flaggedRevenue = mockFlags.filter((r) => r.band !== 'low').reduce((s, r) => s + r.amount, 0)
   const openCases = mockFlags.filter((r) => r.band === 'high').length
 
@@ -125,7 +183,7 @@ export default function App() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
-              Fine-Guard AI
+          <div className="grid gap-6 lg:grid-cols-5">
             </p>
             <h1 className="text-lg font-semibold text-slate-50">Fraud monitoring</h1>
             <p className="text-sm text-slate-400">
@@ -226,6 +284,28 @@ export default function App() {
           </section>
         </div>
 
+        {trainingLog && trainingLog.length > 0 && (
+          <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+            <h2 className="text-sm font-semibold text-slate-200">Training logs (demo.pt)</h2>
+            <p className="mb-3 text-xs text-slate-500">Loss and metrics per epoch</p>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trainingLog} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <XAxis dataKey="epoch" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: '#475569' }} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
+                  />
+                  <Legend verticalAlign="top" />
+                  <Line type="monotone" dataKey="train_loss" stroke="#38bdf8" dot={false} name="Train Loss" />
+                  <Line type="monotone" dataKey="val_loss" stroke="#60a5fa" dot={false} name="Val Loss" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
+
         <section
           className={`rounded-xl border border-dashed px-6 py-10 text-center transition-colors ${
             uploadHover ? 'border-sky-500/60 bg-sky-950/20' : 'border-slate-600 bg-slate-900/30'
@@ -273,7 +353,7 @@ export default function App() {
                     <div><strong className="text-slate-200">Rows:</strong> <span className="text-slate-400">{uploadResult.row_count}</span></div>
                     <div><strong className="text-slate-200">ID:</strong> <span className="font-mono text-xs text-sky-300">{uploadResult.dataset_id}</span></div>
                   </div>
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <button
                       className="rounded bg-emerald-600 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-500"
                       onClick={() => void runPredict(uploadResult.dataset_id)}
@@ -281,6 +361,24 @@ export default function App() {
                     >
                       {predicting ? 'Predicting…' : 'Run prediction'}
                     </button>
+                    <button
+                      className="rounded border border-emerald-500 px-3 py-1 text-sm font-medium text-emerald-300 hover:bg-emerald-900/30"
+                      onClick={() => void runScoring(uploadResult.dataset_id)}
+                      disabled={scoring}
+                    >
+                      {scoring ? 'Scoring…' : 'Run scoring'}
+                    </button>
+                    {jobStatus && (
+                      <div className="mt-2 text-xs text-slate-400">Job: {jobStatus} {jobId ? `· ${jobId}` : ''}</div>
+                    )}
+                    {jobProgress !== null && (
+                      <div className="mt-2 w-full max-w-xs">
+                        <div className="h-2 w-full rounded bg-slate-800">
+                          <div className="h-2 rounded bg-sky-500" style={{ width: `${jobProgress}%` }} />
+                        </div>
+                        <div className="mt-1 text-xs text-slate-400">Progress: {jobProgress}%</div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {uploadResult.warnings?.length > 0 && (

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import datasets, flags, jobs, meta, predict
+from app.api.v1.endpoints import datasets, flags, jobs, meta, predict, models
 
 api_router = APIRouter()
 api_router.include_router(meta.router)
@@ -8,3 +8,4 @@ api_router.include_router(datasets.router, prefix="/datasets", tags=["datasets"]
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(flags.router, prefix="/flags", tags=["flags"])
 api_router.include_router(predict.router, prefix="", tags=["predict"])
+api_router.include_router(models.router, prefix="/models", tags=["models"])
