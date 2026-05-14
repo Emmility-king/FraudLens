@@ -109,7 +109,7 @@ Short-term (student project scope):
 - Add more frontend pages: dataset listing, job status page, and per-dataset analytics (histograms, ROC, precision/recall).
 - Improve UI polish and add upload progress indicators, toasts, and better mobile handling.
 
-Longer-term:
+Long-term:
 
 - Integrate a real large-scale dataset and add sampling/streaming ingestion to handle very large files.
 - Add role-based access control and audit logging for analyst actions.
@@ -120,6 +120,50 @@ Longer-term:
 Contributions are welcome. Please open issues for bugs or feature requests and make small pull requests for changes. Keep changes focused and include tests where appropriate.
 
 **License**
+
+This repository keeps the existing license file. See `LICENSE.md` for details.
+
+**Model: training and usage**
+
+This project now includes a minimal demonstrator PyTorch model and training pipeline to help you iterate quickly. It is intentionally small so it runs on a laptop and is suitable for learning and extension.
+
+- Training CLI: `backend/train.py` — generates synthetic transaction data and trains a demo MLP.
+
+From the repository root, run the trainer from the `backend` folder:
+
+```powershell
+cd backend
+python train.py --rows 5000 --out data/synth.csv --model-name demo.pt --epochs 6
+```
+
+This will:
+- generate `data/synth.csv` (synthetic transactions with a `label` column)
+- train a small MLP and save model weights to `backend/models/demo.pt` and metadata to `backend/models/demo.pt.meta`
+
+Prediction (API): the backend exposes a prediction preview endpoint which applies the trained model to transactions from a dataset stored in the DB.
+
+- `POST /api/v1/predict/{dataset_id}` — returns a small preview of model scores for the dataset (requires a trained model to exist in `backend/models`). If the model is missing, the endpoint returns HTTP 500 with an explanatory message.
+
+Programmatic inference: you can also use the model service directly from Python:
+
+```python
+from app.services.model import predict_df, load_model
+import pandas as pd
+
+df = pd.read_csv('some_transactions.csv')
+scores = predict_df(df, save_name='demo.pt')
+```
+
+Files added for model/demo:
+- `backend/app/services/synth.py` — synthetic transaction generator
+- `backend/app/services/model.py` — PyTorch model, train/save/load/predict helpers
+- `backend/train.py` — small CLI that ties generator + training together
+- `backend/app/api/v1/endpoints/predict.py` — API endpoint for prediction previews
+
+Notes and caveats:
+- This model is a learning scaffold, not production-ready. Feature engineering is minimal (amount + categorical encodings) and model capacity is small.
+- For real tasks, add proper feature pipelines, class imbalance handling, evaluation metrics, model versioning, and saving of preprocessing artifacts.
+- If you plan to train on large datasets, move training off-device or implement streaming/batched training.
 
 This repository keeps the existing license file. See `LICENSE.md` for details.
 
