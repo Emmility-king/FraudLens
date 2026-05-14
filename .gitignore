@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Node
+node_modules/
+dist/
+
+# Data & DB
+data/
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Build
+build/
+dist/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+*.log
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+node_modules/
+frontend/dist/
+
+# Local SQLite DB (school project default)
+data/
+*.db
