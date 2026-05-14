@@ -38,6 +38,7 @@ class JobStatusResponse(BaseModel):
     dataset_id: str
     status: str
     error_message: str | None = None
+    progress: float | None = None
 
 
 class FlagRow(BaseModel):

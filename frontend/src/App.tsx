@@ -30,6 +30,7 @@ export default function App() {
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<any | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [predicting, setPredicting] = useState(false)
   const [predictResult, setPredictResult] = useState<any | null>(null)
   const [predictError, setPredictError] = useState<string | null>(null)
@@ -59,21 +60,40 @@ export default function App() {
     }
     try {
       setUploading(true)
+      setUploadProgress(0)
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${API_BASE}/api/v1/datasets/`)
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const body = JSON.parse(xhr.responseText)
+            setUploadResult(body)
+          } catch (e) {
+            setUploadError('Could not parse server response')
+          }
+        } else {
+          setUploadError(xhr.responseText || xhr.statusText)
+        }
+        setUploading(false)
+        setUploadProgress(null)
+      }
+      xhr.onerror = () => {
+        setUploadError('Network error during upload')
+        setUploading(false)
+        setUploadProgress(null)
+      }
       const fd = new FormData()
       fd.append('file', file, file.name)
-      const res = await fetch(`${API_BASE}/api/v1/`, { method: 'GET' })
-      // quick health check - ignore result, proceed to upload
-      const r = await fetch(`${API_BASE}/api/v1/datasets/`, { method: 'POST', body: fd })
-      if (!r.ok) {
-        const t = await r.text()
-        throw new Error(t || r.statusText)
-      }
-      const body = await r.json()
-      setUploadResult(body)
+      xhr.send(fd)
     } catch (err: any) {
       setUploadError(err?.message ?? String(err))
-    } finally {
       setUploading(false)
+      setUploadProgress(null)
     }
   }
 
@@ -237,6 +257,14 @@ export default function App() {
           </div>
           <div className="mt-3">
             {uploading && <p className="text-xs text-slate-400">Uploading…</p>}
+            {uploadProgress !== null && (
+              <div className="mt-2 w-full max-w-md">
+                <div className="h-2 w-full rounded bg-slate-800">
+                  <div className="h-2 rounded bg-emerald-400" style={{ width: `${uploadProgress}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-slate-400">{uploadProgress}%</p>
+              </div>
+            )}
             {uploadResult && (
               <div className="mx-auto mt-2 max-w-md rounded border border-slate-800 bg-slate-950/60 p-3 text-left text-sm">
                 <div className="flex items-center justify-between gap-4">
